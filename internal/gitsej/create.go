@@ -155,15 +155,20 @@ func createMainWorktree(ctx context.Context, targetDir, mainBranch string) error
 }
 
 func runGit(ctx context.Context, args ...string) error {
+	_, err := runGitOutput(ctx, args...)
+	return err
+}
+
+func runGitOutput(ctx context.Context, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		return nil
+		return string(output), nil
 	}
 
 	msg := strings.TrimSpace(string(output))
 	if msg == "" {
-		return fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
+		return "", fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
 	}
-	return fmt.Errorf("git %s failed: %w: %s", strings.Join(args, " "), err, msg)
+	return "", fmt.Errorf("git %s failed: %w: %s", strings.Join(args, " "), err, msg)
 }

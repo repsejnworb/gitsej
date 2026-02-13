@@ -50,6 +50,25 @@ Initialize current directory:
 gitsej init
 ```
 
+Migrate a standard clone into a gitsej repo:
+
+```sh
+gitsej migrate /path/to/repo
+```
+
+`migrate` will:
+
+- convert `.git/` to `.bare/`
+- create `.git` and `.gitsej` (if missing)
+- create `main/` worktree (or your detected default branch, such as `master`)
+- move linked worktrees into the repo root
+
+If the main worktree is dirty, `migrate` prompts before cleaning it. Use `--yes` to skip the prompt:
+
+```sh
+gitsej migrate --yes /path/to/repo
+```
+
 ### Flags
 
 - `--main-worktree`: create `./main` worktree tracking `origin/<main-branch>`
@@ -58,6 +77,7 @@ gitsej init
 `init` command flags:
 
 - `gitsej init --main-branch <branch>`: branch value for newly created `.gitsej` files
+- `gitsej migrate --yes <path>`: allow migration when main worktree is dirty
 
 ### Environment
 

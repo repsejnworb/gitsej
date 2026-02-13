@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,6 +50,19 @@ func NewCommand() *cli.Command {
 				Usage:     "initialize .git/.gitsej in an existing gitsej repo directory",
 				UsageText: "gitsej init [options] [directory]",
 				Action:    runInit,
+			},
+			{
+				Name:      "migrate",
+				Usage:     "migrate a standard clone into a gitsej repo directory",
+				UsageText: "gitsej migrate [options] <directory>",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "yes",
+						Aliases: []string{"y"},
+						Usage:   "proceed even if main worktree has uncommitted changes",
+					},
+				},
+				Action: runMigrate,
 			},
 		},
 		Action: runCreate,
@@ -120,6 +135,80 @@ func runInit(_ context.Context, c *cli.Command) error {
 	return err
 }
 
+func runMigrate(ctx context.Context, c *cli.Command) error {
+	args := c.Args().Slice()
+	if len(args) != 1 {
+		return cli.Exit("expected <directory>", 2)
+	}
+
+	opts := gitsej.MigrateOptions{
+		Directory:      strings.TrimSpace(args[0]),
+		ForceMainClean: c.Bool("yes"),
+	}
+	if c.IsSet("main-branch") {
+		opts.MainBranch = strings.TrimSpace(c.String("main-branch"))
+	}
+
+	result, err := gitsej.Migrate(ctx, opts)
+	if err != nil {
+		var dirtyErr *gitsej.DirtyMainWorktreeError
+		if errors.As(err, &dirtyErr) && !opts.ForceMainClean {
+			confirmed, confirmErr := confirmMainCleanup(c, dirtyErr.Path)
+			if confirmErr != nil {
+				return confirmErr
+			}
+			if !confirmed {
+				return errors.New("migration canceled")
+			}
+			opts.ForceMainClean = true
+			result, err = gitsej.Migrate(ctx, opts)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	createdConfig := "no"
+	if result.CreatedConfig {
+		createdConfig = "yes"
+	}
+
+	if _, err := fmt.Fprintf(
+		outputWriter(c),
+		"migrated gitsej repo: %s (main_branch=%s, created_.gitsej=%s, moved_worktrees=%d)\n",
+		result.Directory,
+		result.MainBranch,
+		createdConfig,
+		len(result.MovedWorktrees),
+	); err != nil {
+		return err
+	}
+	for _, moved := range result.MovedWorktrees {
+		if _, err := fmt.Fprintf(outputWriter(c), "moved worktree: %s\n", moved); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func confirmMainCleanup(c *cli.Command, path string) (bool, error) {
+	if _, err := fmt.Fprintf(
+		outputWriter(c),
+		"main worktree is dirty and will be cleaned during migration: %s\ncontinue? [y/N]: ",
+		path,
+	); err != nil {
+		return false, err
+	}
+
+	reader := bufio.NewReader(inputReader(c))
+	line, err := reader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+	answer := strings.ToLower(strings.TrimSpace(line))
+	return answer == "y" || answer == "yes", nil
+}
+
 func outputWriter(c *cli.Command) io.Writer {
 	root := c.Root()
 	if root != nil && root.Writer != nil {
@@ -129,4 +218,15 @@ func outputWriter(c *cli.Command) io.Writer {
 		return c.Writer
 	}
 	return os.Stdout
+}
+
+func inputReader(c *cli.Command) io.Reader {
+	root := c.Root()
+	if root != nil && root.Reader != nil {
+		return root.Reader
+	}
+	if c.Reader != nil {
+		return c.Reader
+	}
+	return os.Stdin
 }
