@@ -44,24 +44,29 @@ trim() {
   printf '%s' "$s"
 }
 
+is_valid_gitsej_root() {
+  local root="$1"
+  [[ -n "$root" ]] || return 1
+  [[ -d "$root/.bare" ]] || return 1
+  [[ -d "$root/.git" || -f "$root/.git" ]] || return 1
+  if [[ "$REQUIRE_MARKER" == "1" && ! -f "$root/.gitsej" ]]; then
+    return 1
+  fi
+  return 0
+}
+
 discover_gitsej_root() {
   local path="$1"
   local common_dir root
 
   [[ -n "$path" && -d "$path" ]] || return 1
-  [[ "$(git -C "$path" rev-parse --is-inside-work-tree 2>/dev/null || true)" == "true" ]] || return 1
 
   common_dir="$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
   [[ -n "$common_dir" ]] || return 1
   [[ "${common_dir##*/}" == ".bare" ]] || return 1
 
   root="$(dirname "$common_dir")"
-  [[ -d "$root/.bare" ]] || return 1
-  [[ -d "$root/.git" || -f "$root/.git" ]] || return 1
-
-  if [[ "$REQUIRE_MARKER" == "1" && ! -f "$root/.gitsej" ]]; then
-    return 1
-  fi
+  is_valid_gitsej_root "$root" || return 1
 
   printf '%s\n' "$root"
 }
@@ -177,7 +182,7 @@ fi
 
 selected_root=""
 pinned_root="$(tmux show-options -t "$SESSION_ID" -vq @gitsej_root 2>/dev/null || true)"
-if has_candidate "$pinned_root"; then
+if is_valid_gitsej_root "$pinned_root"; then
   selected_root="$pinned_root"
 elif has_candidate "$active_root"; then
   selected_root="$active_root"
