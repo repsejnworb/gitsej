@@ -12,6 +12,14 @@ go install github.com/repsejnworb/gitsej/cmd/gitsej@latest
 
 `go install` places the binary in `$GOBIN` (or `$(go env GOPATH)/bin` when `GOBIN` is unset). Make sure that directory is in your `PATH` so `gitsej` is runnable from anywhere.
 
+## Development
+
+Run local checks:
+
+```sh
+just ci
+```
+
 ## Usage
 
 Create a gitsej repo directory from a remote URL:
