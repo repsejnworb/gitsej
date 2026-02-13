@@ -36,10 +36,26 @@ Override target directory:
 gitsej git@github.com:owner/repo.git my-repo
 ```
 
+Initialize an existing gitsej directory (must contain `.bare`):
+
+```sh
+gitsej init /path/to/repo
+```
+
+Initialize current directory:
+
+```sh
+gitsej init
+```
+
 ### Flags
 
 - `--main-worktree`: create `./main` worktree tracking `origin/<main-branch>`
 - `--main-branch`: branch name used for `--main-worktree` and `.gitsej` defaults (default: `main`)
+
+`init` command flags:
+
+- `gitsej init --main-branch <branch>`: branch value for newly created `.gitsej` files
 
 ### Environment
 

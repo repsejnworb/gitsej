@@ -28,7 +28,7 @@ func NewCommand() *cli.Command {
 
 	return &cli.Command{
 		Name:      "gitsej",
-		Usage:     "create a gitsej repo directory from a remote Git URL",
+		Usage:     "bootstrap and initialize gitsej repos",
 		UsageText: "gitsej [options] <repo-url> [directory]",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
@@ -42,11 +42,19 @@ func NewCommand() *cli.Command {
 				Value: defaults.MainBranch,
 			},
 		},
-		Action: run,
+		Commands: []*cli.Command{
+			{
+				Name:      "init",
+				Usage:     "initialize .git/.gitsej in an existing gitsej repo directory",
+				UsageText: "gitsej init [options] [directory]",
+				Action:    runInit,
+			},
+		},
+		Action: runCreate,
 	}
 }
 
-func run(ctx context.Context, c *cli.Command) error {
+func runCreate(ctx context.Context, c *cli.Command) error {
 	args := c.Args().Slice()
 	if len(args) < 1 || len(args) > 2 {
 		return cli.Exit("expected <repo-url> [directory]", 2)
@@ -68,6 +76,47 @@ func run(ctx context.Context, c *cli.Command) error {
 	}
 
 	_, err = fmt.Fprintf(outputWriter(c), "created gitsej repo: %s\n", createdDir)
+	return err
+}
+
+func runInit(_ context.Context, c *cli.Command) error {
+	args := c.Args().Slice()
+	if len(args) > 1 {
+		return cli.Exit("expected [directory]", 2)
+	}
+
+	targetDir := "."
+	if len(args) == 1 {
+		targetDir = strings.TrimSpace(args[0])
+	}
+
+	result, err := gitsej.Init(gitsej.InitOptions{
+		Directory:  targetDir,
+		MainBranch: strings.TrimSpace(c.String("main-branch")),
+	})
+	if err != nil {
+		return err
+	}
+
+	created := make([]string, 0, 2)
+	if result.CreatedGitFile {
+		created = append(created, ".git")
+	}
+	if result.CreatedConfig {
+		created = append(created, ".gitsej")
+	}
+
+	if len(created) == 0 {
+		_, err = fmt.Fprintf(outputWriter(c), "initialized gitsej repo: %s (no changes)\n", result.Directory)
+		return err
+	}
+
+	_, err = fmt.Fprintf(
+		outputWriter(c),
+		"initialized gitsej repo: %s (created %s)\n",
+		result.Directory,
+		strings.Join(created, ", "),
+	)
 	return err
 }
 

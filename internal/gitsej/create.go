@@ -61,7 +61,7 @@ func Create(ctx context.Context, opts CreateOptions) (string, error) {
 		return "", err
 	}
 
-	if err := os.WriteFile(filepath.Join(targetDir, ".git"), []byte("gitdir: ./.bare\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(targetDir, ".git"), []byte(gitdirFileContent()), 0o644); err != nil {
 		return "", fmt.Errorf("write .git: %w", err)
 	}
 
@@ -113,18 +113,25 @@ func inferDirectoryName(repoURL string) (string, error) {
 }
 
 func writeGitsejConfig(targetDir, mainBranch string) error {
-	content := fmt.Sprintf(`# gitsej repo configuration
+	content := gitsejConfigContent(mainBranch)
+	if err := os.WriteFile(filepath.Join(targetDir, ".gitsej"), []byte(content), 0o644); err != nil {
+		return fmt.Errorf("write .gitsej: %w", err)
+	}
+	return nil
+}
+
+func gitsejConfigContent(mainBranch string) string {
+	return fmt.Sprintf(`# gitsej repo configuration
 # Optional label shown in tmux status; defaults to directory name.
 label=
 main_worktree=main
 main_branch=%s
 cooldown=300
 `, mainBranch)
+}
 
-	if err := os.WriteFile(filepath.Join(targetDir, ".gitsej"), []byte(content), 0o644); err != nil {
-		return fmt.Errorf("write .gitsej: %w", err)
-	}
-	return nil
+func gitdirFileContent() string {
+	return "gitdir: ./.bare\n"
 }
 
 func createMainWorktree(ctx context.Context, targetDir, mainBranch string) error {
