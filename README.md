@@ -60,6 +60,14 @@ Initialize current directory:
 gitsej init
 ```
 
+Upgrade gitsej metadata in an existing gitsej directory:
+
+```sh
+gitsej upgrade /path/to/repo
+```
+
+`upgrade` keeps existing values untouched, creates missing `.git` / `.gitsej` files, and appends any newly introduced default `.gitsej` keys.
+
 Migrate a standard clone into a gitsej repo:
 
 ```sh
@@ -87,6 +95,7 @@ gitsej migrate --yes /path/to/repo
 `init` command flags:
 
 - `gitsej init --main-branch <branch>`: branch value for newly created `.gitsej` files
+- `gitsej upgrade --main-branch <branch>`: branch value used only if `main_branch` is missing from `.gitsej`
 - `gitsej migrate --yes <path>`: allow migration when main worktree is dirty
 
 ### Environment

@@ -64,6 +64,12 @@ func NewCommand() *cli.Command {
 				},
 				Action: runMigrate,
 			},
+			{
+				Name:      "upgrade",
+				Usage:     "upgrade gitsej metadata by adding missing config defaults",
+				UsageText: "gitsej upgrade [options] [directory]",
+				Action:    runUpgrade,
+			},
 		},
 		Action: runCreate,
 	}
@@ -189,6 +195,43 @@ func runMigrate(ctx context.Context, c *cli.Command) error {
 		}
 	}
 	return nil
+}
+
+func runUpgrade(_ context.Context, c *cli.Command) error {
+	args := c.Args().Slice()
+	if len(args) > 1 {
+		return cli.Exit("expected [directory]", 2)
+	}
+
+	targetDir := "."
+	if len(args) == 1 {
+		targetDir = strings.TrimSpace(args[0])
+	}
+
+	result, err := gitsej.Upgrade(gitsej.UpgradeOptions{
+		Directory:  targetDir,
+		MainBranch: strings.TrimSpace(c.String("main-branch")),
+	})
+	if err != nil {
+		return err
+	}
+
+	parts := make([]string, 0, 3)
+	if result.CreatedGitFile {
+		parts = append(parts, "created .git")
+	}
+	if result.CreatedConfig {
+		parts = append(parts, "created .gitsej")
+	}
+	if len(result.AddedKeys) > 0 {
+		parts = append(parts, "added keys: "+strings.Join(result.AddedKeys, ", "))
+	}
+	if len(parts) == 0 {
+		parts = append(parts, "no changes")
+	}
+
+	_, err = fmt.Fprintf(outputWriter(c), "upgraded gitsej repo: %s (%s)\n", result.Directory, strings.Join(parts, "; "))
+	return err
 }
 
 func confirmMainCleanup(c *cli.Command, path string) (bool, error) {
