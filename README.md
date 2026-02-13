@@ -1,5 +1,7 @@
 # gitsej
 
+[![ci](https://github.com/repsejnworb/gitsej/actions/workflows/ci.yml/badge.svg)](https://github.com/repsejnworb/gitsej/actions/workflows/ci.yml)
+
 `gitsej` creates a "gitsej repo": a parent directory backed by a bare repository in `.bare`, with `.git` pointing to that bare repo, plus a `.gitsej` config marker.
 
 ## Install
