@@ -45,6 +45,9 @@ func TestInitCreatesMissingFiles(t *testing.T) {
 	if !strings.Contains(string(cfgData), "main_branch=trunk\n") {
 		t.Fatalf("expected branch override in .gitsej, got:\n%s", string(cfgData))
 	}
+	if !strings.Contains(string(cfgData), "auto_update=0\n") {
+		t.Fatalf("expected auto_update in .gitsej, got:\n%s", string(cfgData))
+	}
 }
 
 func TestInitCreatesOnlyMissingConfigWhenGitExists(t *testing.T) {

@@ -104,7 +104,13 @@ label=
 main_worktree=main
 main_branch=main
 cooldown=300
+auto_update=0
 ```
+
+`auto_update` controls background pull behavior in tmux status:
+
+- `0`: never auto-pull (manual `--update` only)
+- `1`: auto-pull when the configured worktree is clean and behind
 
 ## tmux status integration
 
@@ -124,6 +130,7 @@ Add to `.tmux.conf`:
 set -g status-right "#(bash ~/.config/tmux/scripts/gitsej-main-status.sh '#{session_id}')#[fg=#7dcfff] #(whoami) #[fg=#a9b1d6]| #[fg=#9ece6a]󰇅 #H #[fg=#a9b1d6]| #[fg=#c0caf5] %H:%M #[fg=#565f89]| #[fg=#7aa2f7]%Y-%m-%d"
 
 bind u run-shell -b "bash ~/.config/tmux/scripts/gitsej-main-status.sh --force '#{session_id}' >/dev/null 2>&1" \; refresh-client -S \; display-message "status force refresh"
+bind U run-shell -b "bash ~/.config/tmux/scripts/gitsej-main-status.sh --update '#{session_id}' >/dev/null 2>&1" \; refresh-client -S \; display-message "status manual update"
 bind g run-shell -b "bash ~/.config/tmux/scripts/gitsej-main-status.sh --cycle '#{session_id}' >/dev/null 2>&1" \; refresh-client -S \; display-message "gitsej root: #{@gitsej_root}"
 bind G run-shell -b "bash ~/.config/tmux/scripts/gitsej-main-status.sh --clear-pin '#{session_id}' >/dev/null 2>&1" \; refresh-client -S \; display-message "gitsej root auto"
 ```
@@ -132,7 +139,8 @@ Behavior:
 
 - Auto-detects gitsej roots from pane paths in the current tmux session
 - Pins active root per session via `@gitsej_root`
-- `Prefix + u`: force refresh now
+- `Prefix + u`: force recompute now (no pull unless `auto_update=1`)
+- `Prefix + U`: manual update now (fetch + pull when clean and behind)
 - `Prefix + g`: cycle pinned root across discovered gitsej repos
 - `Prefix + G`: clear pin and return to auto-selection
 

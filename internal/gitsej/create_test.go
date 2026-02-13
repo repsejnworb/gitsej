@@ -89,4 +89,7 @@ func TestWriteGitsejConfig(t *testing.T) {
 	if !strings.Contains(content, "cooldown=300\n") {
 		t.Fatalf("expected cooldown in config, got:\n%s", content)
 	}
+	if !strings.Contains(content, "auto_update=0\n") {
+		t.Fatalf("expected auto_update in config, got:\n%s", content)
+	}
 }

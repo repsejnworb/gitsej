@@ -127,6 +127,8 @@ label=
 main_worktree=main
 main_branch=%s
 cooldown=300
+# 0 = never auto-pull, 1 = auto-pull when clean and behind.
+auto_update=0
 `, mainBranch)
 }
 

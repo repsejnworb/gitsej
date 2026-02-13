@@ -4,9 +4,11 @@ set -u
 DEFAULT_COOLDOWN="${GITSEJ_TMUX_COOLDOWN:-300}"
 DEFAULT_MAIN_WORKTREE="${GITSEJ_MAIN_WORKTREE:-main}"
 DEFAULT_MAIN_BRANCH="${GITSEJ_MAIN_BRANCH:-main}"
+DEFAULT_AUTO_UPDATE="${GITSEJ_AUTO_UPDATE:-0}"
 REQUIRE_MARKER="${GITSEJ_REQUIRE_MARKER:-0}"
 SESSION_ID=""
 FORCE=0
+UPDATE=0
 CYCLE=0
 CLEAR_PIN=0
 
@@ -14,6 +16,9 @@ for arg in "$@"; do
   case "$arg" in
     --force|-f)
       FORCE=1
+      ;;
+    --update)
+      UPDATE=1
       ;;
     --cycle)
       CYCLE=1
@@ -42,6 +47,20 @@ trim() {
   s="${s#"${s%%[![:space:]]*}"}"
   s="${s%"${s##*[![:space:]]}"}"
   printf '%s' "$s"
+}
+
+parse_bool() {
+  local s
+  s="$(trim "${1:-}")"
+  s="${s,,}"
+  case "$s" in
+    1|true|yes|on)
+      printf '1'
+      ;;
+    *)
+      printf '0'
+      ;;
+  esac
 }
 
 is_valid_gitsej_root() {
@@ -197,6 +216,7 @@ label="$(basename "$selected_root")"
 main_worktree_cfg="$DEFAULT_MAIN_WORKTREE"
 main_branch="$DEFAULT_MAIN_BRANCH"
 COOLDOWN="$DEFAULT_COOLDOWN"
+AUTO_UPDATE="$(parse_bool "$DEFAULT_AUTO_UPDATE")"
 
 config_file="$selected_root/.gitsej"
 if [[ -f "$config_file" ]]; then
@@ -220,6 +240,9 @@ if [[ -f "$config_file" ]]; then
         if [[ "$value" =~ ^[0-9]+$ ]]; then
           COOLDOWN="$value"
         fi
+        ;;
+      auto_update)
+        AUTO_UPDATE="$(parse_bool "$value")"
         ;;
     esac
   done < "$config_file"
@@ -255,7 +278,7 @@ fi
 [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
 [[ "$dirty" =~ ^[0-1]$ ]] || dirty=0
 
-if (( FORCE == 1 || now - last >= COOLDOWN )); then
+if (( FORCE == 1 || UPDATE == 1 || now - last >= COOLDOWN )); then
   git -C "$main_worktree" fetch --all --prune >/dev/null 2>&1 || exit 0
 
   behind="$(git -C "$main_worktree" rev-list --count "${main_branch}..origin/${main_branch}" 2>/dev/null || echo 0)"
@@ -265,7 +288,7 @@ if (( FORCE == 1 || now - last >= COOLDOWN )); then
     dirty=0
   fi
 
-  if (( behind > 0 )) && (( dirty == 0 )); then
+  if (( behind > 0 )) && (( dirty == 0 )) && (( UPDATE == 1 || AUTO_UPDATE == 1 )); then
     git -C "$main_worktree" pull --ff-only origin "$main_branch" >/dev/null 2>&1 || true
     behind="$(git -C "$main_worktree" rev-list --count "${main_branch}..origin/${main_branch}" 2>/dev/null || echo "$behind")"
     if [[ -n "$(git -C "$main_worktree" status --porcelain 2>/dev/null)" ]]; then
