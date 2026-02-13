@@ -26,7 +26,7 @@ func TestMigrateConvertsStandardCloneAndMovesWorktrees(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	runGitTest(t, ctx, "-C", repoDir, "add", "README.md")
-	runGitTest(t, ctx, "-c", "commit.gpgsign=false", "-C", repoDir, "commit", "-m", "init")
+	runGitTest(t, ctx, "-C", repoDir, "commit", "-m", "init")
 	runGitTest(t, ctx, "-C", repoDir, "branch", "feature")
 	runGitTest(t, ctx, "-C", repoDir, "worktree", "add", featureWorktree, "feature")
 
@@ -93,7 +93,7 @@ func TestMigrateRequiresConfirmationWhenMainIsDirty(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	runGitTest(t, ctx, "-C", repoDir, "add", "file.txt")
-	runGitTest(t, ctx, "-c", "commit.gpgsign=false", "-C", repoDir, "commit", "-m", "init")
+	runGitTest(t, ctx, "-C", repoDir, "commit", "-m", "init")
 	if err := os.WriteFile(filepath.Join(repoDir, "file.txt"), []byte("changed\n"), 0o644); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestMigrateForceCleansDirtyMain(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	runGitTest(t, ctx, "-C", repoDir, "add", "file.txt")
-	runGitTest(t, ctx, "-c", "commit.gpgsign=false", "-C", repoDir, "commit", "-m", "init")
+	runGitTest(t, ctx, "-C", repoDir, "commit", "-m", "init")
 	if err := os.WriteFile(filepath.Join(repoDir, "file.txt"), []byte("changed\n"), 0o644); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
@@ -149,5 +149,11 @@ func runGitTest(t *testing.T, ctx context.Context, args ...string) {
 }
 
 func runGitTestOutput(ctx context.Context, args ...string) (string, error) {
-	return runGitOutput(ctx, args...)
+	prefix := []string{
+		"-c", "user.name=gitsej-test",
+		"-c", "user.email=gitsej-test@example.invalid",
+		"-c", "commit.gpgsign=false",
+	}
+	allArgs := append(prefix, args...)
+	return runGitOutput(ctx, allArgs...)
 }
