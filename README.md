@@ -88,6 +88,10 @@ Behavior:
 - `Prefix + g`: cycle pinned root across discovered gitsej repos
 - `Prefix + G`: clear pin and return to auto-selection
 
+Optional strict marker mode:
+
+- `GITSEJ_REQUIRE_MARKER=1` to require a `.gitsej` file in the repo root for detection
+
 Cache files live in:
 
 ```sh
